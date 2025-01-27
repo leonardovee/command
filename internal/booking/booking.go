@@ -1,6 +1,7 @@
 package booking
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"time"
@@ -9,10 +10,10 @@ import (
 )
 
 type BookingCommand struct {
-	AcommodationID string
-	UserID         string
-	StartAt        time.Time
-	EndAt          time.Time
+	AccommodationID string
+	UserID          string
+	StartAt         time.Time
+	EndAt           time.Time
 }
 
 func (c *BookingCommand) GetId() string {
@@ -25,27 +26,45 @@ func (c *BookingCommand) GetName() command.CommandType {
 
 func NewBookingCommand(acommodationID, userID string, startAt, endAt time.Time) *BookingCommand {
 	return &BookingCommand{
-		AcommodationID: acommodationID,
-		UserID:         userID,
-		StartAt:        startAt,
-		EndAt:          endAt,
+		AccommodationID: acommodationID,
+		UserID:          userID,
+		StartAt:         startAt,
+		EndAt:           endAt,
 	}
 }
 
 type BookingCommandHandler struct {
-	logger *slog.Logger
+	logger     *slog.Logger
+	repository *Repository
 }
 
-func NewBookingCommandHandler(logger *slog.Logger) *BookingCommandHandler {
+func NewBookingCommandHandler(logger *slog.Logger, repository *Repository) *BookingCommandHandler {
 	return &BookingCommandHandler{
-		logger: logger,
+		logger:     logger,
+		repository: repository,
 	}
-}
-
-func (h *BookingCommandHandler) Handle(command command.Command) {
-	h.logger.Info(fmt.Sprintf("Handling command %s", command.GetName()))
 }
 
 func (h *BookingCommandHandler) GetName() command.CommandType {
 	return "booking"
+}
+
+func (h *BookingCommandHandler) Handle(command command.Command) error {
+	ctx := context.Background()
+	h.logger.Info("handling command", "name", command.GetName())
+
+	bookingCmd, ok := command.(*BookingCommand)
+	if !ok {
+		return fmt.Errorf("invalid command type: expected BookingCommand")
+	}
+
+	booking, err := h.repository.NewBooking(ctx, *bookingCmd)
+	if err != nil {
+		h.logger.Error("failed to create booking", "error", err)
+		return err
+	}
+
+	h.logger.Info("booking created", "id", booking.ID)
+
+	return nil
 }

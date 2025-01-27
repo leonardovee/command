@@ -11,7 +11,7 @@ type Command interface {
 
 type CommandHandler interface {
 	GetName() CommandType
-	Handle(command Command)
+	Handle(command Command) error
 }
 
 type Dispatcheable interface {
@@ -53,6 +53,7 @@ func (d *Dispatcher) processCommands() {
 			}
 
 			handler := d.handlers[command.GetName()]
+			// TODO: deal with errors
 			handler.Handle(command)
 			d.commands = d.commands[1:]
 		}
