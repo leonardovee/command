@@ -1,5 +1,7 @@
 package command
 
+//go:generate mockgen -source=command.go -destination=command_mock.go -package=command
+
 import "time"
 
 type CommandType string
@@ -43,6 +45,10 @@ func (d *Dispatcher) Dispatch(command Command) {
 }
 
 func (d *Dispatcher) processCommands() {
+	// TODO: every command must run o a separeted goroutine and
+	// after the execution we gotta validate if the command was
+	// successful or not, if yes we remove the command from the
+	// list and publish a event
 	for {
 		if len(d.commands) > 0 {
 			command := d.commands[0]
@@ -53,8 +59,10 @@ func (d *Dispatcher) processCommands() {
 			}
 
 			handler := d.handlers[command.GetName()]
+
 			// TODO: deal with errors
 			handler.Handle(command)
+
 			d.commands = d.commands[1:]
 		}
 	}
