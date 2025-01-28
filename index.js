@@ -20,6 +20,6 @@ const payload = JSON.stringify({
 });
 
 export default function() {
-    let res = http.post("http://localhost:8080/bookings", payload);
+    let res = http.post("http://localhost:8080/api/v1/bookings", payload);
     check(res, { "status was 202": (r) => r.status == 202 });
 }

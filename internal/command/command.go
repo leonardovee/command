@@ -2,8 +2,6 @@ package command
 
 //go:generate mockgen -source=command.go -destination=command_mock.go -package=command
 
-import "time"
-
 type CommandType string
 
 type Command interface {
@@ -21,13 +19,13 @@ type Dispatcheable interface {
 }
 
 type Dispatcher struct {
-	commands []Command
+	commands chan Command
 	handlers map[CommandType]CommandHandler
 }
 
 func NewCommandDispatcher() *Dispatcher {
 	dispatcher := &Dispatcher{
-		commands: []Command{},
+		commands: make(chan Command, 100),
 		handlers: map[CommandType]CommandHandler{},
 	}
 	go dispatcher.processCommands()
@@ -41,29 +39,18 @@ func RegisterHandler(dispatcher *Dispatcher, handler CommandHandler) {
 }
 
 func (d *Dispatcher) Dispatch(command Command) {
-	d.commands = append(d.commands, command)
+	d.commands <- command
 }
 
 func (d *Dispatcher) processCommands() {
 	// TODO: every command must run o a separeted goroutine and
 	// after the execution we gotta validate if the command was
-	// successful or not, if yes we remove the command from the
-	// list and publish a event
-	for {
-		if len(d.commands) > 0 {
-			command := d.commands[0]
-
-			if command == nil {
-				time.Sleep(50 * time.Millisecond)
-				continue
-			}
-
-			handler := d.handlers[command.GetName()]
-
-			// TODO: deal with errors
-			handler.Handle(command)
-
-			d.commands = d.commands[1:]
+	// successful or not, if yes we execute the callback function
+	for command := range d.commands {
+		handler, ok := d.handlers[command.GetName()]
+		if !ok {
+			continue
 		}
+		go handler.Handle(command)
 	}
 }
