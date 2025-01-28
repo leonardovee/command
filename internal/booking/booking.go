@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"leonardovee.dev/command/internal/command"
+	"leonardovee.dev/command/internal/infrastructure"
 )
 
 type BookingCommand struct {
@@ -35,10 +36,10 @@ func NewBookingCommand(acommodationID, userID string, startAt, endAt time.Time) 
 
 type BookingCommandHandler struct {
 	logger     *slog.Logger
-	repository *Repository
+	repository infrastructure.BookingRepository
 }
 
-func NewBookingCommandHandler(logger *slog.Logger, repository *Repository) *BookingCommandHandler {
+func NewBookingCommandHandler(logger *slog.Logger, repository infrastructure.BookingRepository) *BookingCommandHandler {
 	return &BookingCommandHandler{
 		logger:     logger,
 		repository: repository,
@@ -58,7 +59,12 @@ func (h *BookingCommandHandler) Handle(command command.Command) error {
 		return fmt.Errorf("invalid command type: expected BookingCommand")
 	}
 
-	booking, err := h.repository.NewBooking(ctx, *bookingCmd)
+	booking, err := h.repository.NewBooking(ctx, infrastructure.NewBookingInput{
+		AccommodationID: bookingCmd.AccommodationID,
+		UserID:          bookingCmd.UserID,
+		StartAt:         bookingCmd.StartAt,
+		EndAt:           bookingCmd.EndAt,
+	})
 	if err != nil {
 		h.logger.Error("failed to create booking", "error", err)
 		return err

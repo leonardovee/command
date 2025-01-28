@@ -8,7 +8,9 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"leonardovee.dev/command/internal/booking"
+	"leonardovee.dev/command/internal/cancellation"
 	"leonardovee.dev/command/internal/command"
+	"leonardovee.dev/command/internal/infrastructure"
 )
 
 func main() {
@@ -21,14 +23,17 @@ func main() {
 	}
 	defer database.Close()
 
-	repository := booking.NewRepository(database)
+	repository := infrastructure.NewRepository(database)
 
 	dispatcher := command.NewCommandDispatcher()
 	command.RegisterHandler(dispatcher, booking.NewBookingCommandHandler(logger, repository))
+	command.RegisterHandler(dispatcher, cancellation.NewCancellationCommandHandler(logger, repository))
 
 	bookingHandler := booking.NewHandler(logger, dispatcher)
+	cancellationHandler := cancellation.NewHandler(logger, dispatcher)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /bookings", bookingHandler.NewBooking)
+	mux.HandleFunc("POST /api/v1/bookings", bookingHandler.NewBooking)
+	mux.HandleFunc("POST /api/v1/cancellations", cancellationHandler.NewCancellation)
 	http.ListenAndServe(":8080", mux)
 }

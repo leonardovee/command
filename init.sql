@@ -1,4 +1,4 @@
-CREATE TABLE reservations (
+CREATE TABLE bookings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     accommodation_id UUID NOT NULL,
     user_id UUID NOT NULL,
@@ -8,6 +8,6 @@ CREATE TABLE reservations (
     CONSTRAINT check_dates CHECK (end_at > start_at)
 );
 
-CREATE INDEX idx_reservations_acommodation_id ON reservations(accommodation_id);
-CREATE INDEX idx_reservations_user_id ON reservations(user_id);
-CREATE INDEX idx_reservations_dates ON reservations(start_at, end_at);
+CREATE INDEX idx_reservations_acommodation_id ON bookings(accommodation_id);
+CREATE INDEX idx_reservations_user_id ON bookings(user_id);
+CREATE INDEX idx_reservations_dates ON bookings(start_at, end_at);
