@@ -1,8 +1,11 @@
 package command
 
+import "log/slog"
+
 //go:generate mockgen -source=command.go -destination=command_mock.go -package=command
 
 type CommandType string
+type CallbackFn func(Command)
 
 type Command interface {
 	GetId() string
@@ -19,14 +22,18 @@ type Dispatcheable interface {
 }
 
 type Dispatcher struct {
-	commands chan Command
-	handlers map[CommandType]CommandHandler
+	logger    *slog.Logger
+	commands  chan Command
+	handlers  map[CommandType]CommandHandler
+	callbacks []CallbackFn
 }
 
-func NewCommandDispatcher() *Dispatcher {
+func NewCommandDispatcher(logger *slog.Logger, callbacks []CallbackFn) *Dispatcher {
 	dispatcher := &Dispatcher{
-		commands: make(chan Command, 100),
-		handlers: map[CommandType]CommandHandler{},
+		logger:    logger,
+		commands:  make(chan Command, 100),
+		handlers:  map[CommandType]CommandHandler{},
+		callbacks: callbacks,
 	}
 	go dispatcher.processCommands()
 	return dispatcher
@@ -43,14 +50,20 @@ func (d *Dispatcher) Dispatch(command Command) {
 }
 
 func (d *Dispatcher) processCommands() {
-	// TODO: every command must run o a separeted goroutine and
-	// after the execution we gotta validate if the command was
-	// successful or not, if yes we execute the callback function
 	for command := range d.commands {
 		handler, ok := d.handlers[command.GetName()]
 		if !ok {
 			continue
 		}
-		go handler.Handle(command)
+		go func() {
+			err := handler.Handle(command)
+			if err != nil {
+				d.logger.Error("error handling command", "error", err)
+				return
+			}
+			for _, callback := range d.callbacks {
+				go callback(command)
+			}
+		}()
 	}
 }

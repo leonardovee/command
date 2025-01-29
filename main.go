@@ -25,7 +25,11 @@ func main() {
 
 	repository := infrastructure.NewRepository(database)
 
-	dispatcher := command.NewCommandDispatcher()
+	dispatcher := command.NewCommandDispatcher(logger, []command.CallbackFn{
+		func(cmd command.Command) {
+			logger.Info("callback executed for command", "name", cmd.GetName())
+		},
+	})
 	command.RegisterHandler(dispatcher, booking.NewBookingCommandHandler(logger, repository))
 	command.RegisterHandler(dispatcher, cancellation.NewCancellationCommandHandler(logger, repository))
 

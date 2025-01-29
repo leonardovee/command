@@ -1,6 +1,7 @@
 package command
 
 import (
+	"log/slog"
 	"testing"
 
 	gomock "go.uber.org/mock/gomock"
@@ -8,21 +9,24 @@ import (
 
 func TestCommand_processCommands(t *testing.T) {
 	ctrl := gomock.NewController(t)
+	logger := slog.New(slog.NewJSONHandler(nil, nil))
+
 	defer ctrl.Finish()
 
 	t.Run("should process commands", func(t *testing.T) {
-		dispatcher := NewCommandDispatcher()
 		done := make(chan struct{}, 1)
+		dispatcher := NewCommandDispatcher(logger, []CallbackFn{
+			func(cmd Command) {
+				defer close(done)
+			},
+		})
 
 		command := NewMockCommand(ctrl)
 		command.EXPECT().GetName().AnyTimes().Return(CommandType("test"))
 
 		commandHandler := NewMockCommandHandler(ctrl)
 		commandHandler.EXPECT().GetName().AnyTimes().Return(CommandType("test"))
-		commandHandler.EXPECT().Handle(command).DoAndReturn(func(cmd Command) error {
-			defer close(done)
-			return nil
-		})
+		commandHandler.EXPECT().Handle(command).Return(nil)
 
 		RegisterHandler(dispatcher, commandHandler)
 
