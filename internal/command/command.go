@@ -1,11 +1,14 @@
 package command
 
-import "log/slog"
+import (
+	"context"
+	"log/slog"
+)
 
 //go:generate mockgen -source=command.go -destination=command_mock.go -package=command
 
 type CommandType string
-type CallbackFn func(Command)
+type CallbackFn func(context.Context, Command)
 
 type Command interface {
 	GetId() string
@@ -56,13 +59,16 @@ func (d *Dispatcher) processCommands() {
 			continue
 		}
 		go func() {
+			ctx := context.Background()
+
 			err := handler.Handle(command)
 			if err != nil {
 				d.logger.Error("error handling command", "error", err)
 				return
 			}
+
 			for _, callback := range d.callbacks {
-				go callback(command)
+				go callback(ctx, command)
 			}
 		}()
 	}

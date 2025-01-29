@@ -6,6 +6,9 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"leonardovee.dev/command/internal/booking"
 	"leonardovee.dev/command/internal/cancellation"
@@ -14,6 +17,8 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
+
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 	database, err := pgxpool.New(context.Background(), os.Getenv("DATABASE_URL"))
@@ -22,13 +27,21 @@ func main() {
 		os.Exit(1)
 	}
 	defer database.Close()
-
 	repository := infrastructure.NewRepository(database)
 
+	ac, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		logger.Error("failed to load aws config", "error", err)
+		os.Exit(1)
+	}
+
+	client := sns.NewFromConfig(ac, func(o *sns.Options) {
+		o.BaseEndpoint = aws.String("http://localhost:4566")
+	})
+	sns := infrastructure.NewSNS(logger, client)
+
 	dispatcher := command.NewCommandDispatcher(logger, []command.CallbackFn{
-		func(cmd command.Command) {
-			logger.Info("callback executed for command", "name", cmd.GetName())
-		},
+		sns.Publish,
 	})
 	command.RegisterHandler(dispatcher, booking.NewBookingCommandHandler(logger, repository))
 	command.RegisterHandler(dispatcher, cancellation.NewCancellationCommandHandler(logger, repository))

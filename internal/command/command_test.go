@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"log/slog"
 	"testing"
 
@@ -16,7 +17,7 @@ func TestCommand_processCommands(t *testing.T) {
 	t.Run("should process commands", func(t *testing.T) {
 		done := make(chan struct{}, 1)
 		dispatcher := NewCommandDispatcher(logger, []CallbackFn{
-			func(cmd Command) {
+			func(context.Context, Command) {
 				defer close(done)
 			},
 		})
