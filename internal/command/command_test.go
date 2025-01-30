@@ -16,7 +16,7 @@ func TestCommand_processCommands(t *testing.T) {
 
 	t.Run("should process commands", func(t *testing.T) {
 		done := make(chan struct{}, 1)
-		dispatcher := NewCommandDispatcher(logger, []CallbackFn{
+		dispatcher := NewDispatcher(logger, []CallbackFn{
 			func(context.Context, Command) {
 				defer close(done)
 			},

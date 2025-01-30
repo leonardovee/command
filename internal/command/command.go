@@ -31,7 +31,7 @@ type Dispatcher struct {
 	callbacks []CallbackFn
 }
 
-func NewCommandDispatcher(logger *slog.Logger, callbacks []CallbackFn) *Dispatcher {
+func NewDispatcher(logger *slog.Logger, callbacks []CallbackFn) *Dispatcher {
 	dispatcher := &Dispatcher{
 		logger:    logger,
 		commands:  make(chan Command, 100),
