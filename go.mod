@@ -1,4 +1,4 @@
-module leonardovee.dev/command
+module github.com/leonardovee/command
 
 go 1.23.3
 
